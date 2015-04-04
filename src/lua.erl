@@ -12,6 +12,7 @@
          newtable/1,
          next/2,
          objlen/2,
+	 pop/2,
          pushboolean/2,
          pushinteger/2,
          pushlstring/2,
@@ -118,6 +119,11 @@ objlen(L, Index) ->
 -spec createtable(lua(), non_neg_integer(), non_neg_integer()) -> ok.
 createtable(L, Narr, Nrec) ->
     lua_common:command(L, {?ERL_LUA_CREATETABLE, Narr, Nrec}),
+    lua_common:receive_valued_response().
+
+-spec pop(lua(), integer()) -> ok.
+pop(L, N) ->
+    lua_common:command(L, {?ERL_LUA_POP, N}),
     lua_common:receive_valued_response().
 
 -spec pushboolean(lua(), boolean()) -> ok.

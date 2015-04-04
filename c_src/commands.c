@@ -155,6 +155,18 @@ erl_lua_gettop(lua_drv_t *driver_data, char *buf, int index)
 }
 
 void
+erl_lua_pop(lua_drv_t *driver_data, char *buf, int index)
+{
+	long long num;
+
+	ei_decode_longlong(buf, &index, &num);
+
+	lua_pop(driver_data->L, num);
+
+	reply_ok(driver_data);
+}
+
+void
 erl_lua_pushboolean(lua_drv_t *driver_data, char *buf, int index)
 {
   int b;
@@ -396,6 +408,21 @@ erl_lua_type(lua_drv_t *driver_data, char *buf, int index)
   driver_output_term(driver_data->port, spec, sizeof(spec) / sizeof(spec[0]));
 }
 
+void
+erl_lual_dofile(lua_drv_t *driver_data, char *buf, int index)
+{
+  char *file;
+  int len;
+
+  file = decode_binary(buf, &index, &len);
+  file[len] = '\0';
+
+  if (!luaL_dofile(driver_data->L, file))
+    reply_ok(driver_data);
+  else
+    reply_throw(driver_data, lua_tostring(driver_data->L, -1));
+  free(file);
+}
 
 void
 erl_lual_dostring(lua_drv_t *driver_data, char *buf, int index)
@@ -508,10 +535,18 @@ decode_string(const char *buf, int *index)
 {
   int type, length;
   char *str;
-
+  long bin_len;
+  
   ei_get_type(buf, index, &type, &length);
   str = malloc(sizeof(char) * (length + 1));
-  ei_decode_string(buf, index, str);
+  if (ERL_BINARY_EXT == type) {
+	  ei_decode_binary(buf, index, str, &bin_len);
+	  str[length] = '\0';
+	  assert((int)length == bin_len);
+  } else {
+	  ei_decode_string(buf, index, str);
+  }
+
   return str;
 }
 

@@ -126,9 +126,24 @@ toterm(L, N) ->
                 _ -> erlang:error(badarg)
             end;
         table ->
-            F = fun(K, V, Acc) -> [{K, V}|Acc] end,
-            lists:reverse(fold(F, [], L, N))
+	    Len = lua:objlen(L, N),
+	    if
+		Len > 0 ->
+		    tolist(L, N, Len, []);
+		true ->
+		    F = fun(K, V, Acc) -> [{K, V}|Acc] end,
+		    lists:reverse(fold(F, [], L, N))
+	    end
     end.
+
+tolist(L, N, 0, List) ->
+    List;
+tolist(L, N, I, List) ->
+    lua:pushnumber(L, I),
+    lua:gettable(L, N),
+    NewList = [toterm(L, lua:gettop(L)) | List],
+    lua:remove(L, -1),
+    tolist(L, N, I-1, NewList).
 
 %% @doc Call Fun over table on absolute index N. [-0, +0].
 -spec fold(Fun, Acc0, lua:lua(), N :: lua:abs_index()) -> Acc1 when
